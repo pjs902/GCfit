@@ -9,6 +9,8 @@ from ssptools import evolve_mf_3 as emf3
 import fnmatch
 import logging
 
+import binaryshift as bs
+
 
 __all__ = ['DEFAULT_INITIALS', 'Model', 'Observations']
 
@@ -837,25 +839,18 @@ class Model(lp.limepy):
         #   be done much more nicely (maybe with some sweet masked arrays)
 
         self._mf = self._init_mf()
+        self._binshift = bs.gcfit.from_gcfit(self)
 
-        # Set bins that should be empty to empty
-        cs = self._mf.Ns[-1] > 10 * self._mf.Nmin
-        ms, Ms = self._mf.ms[-1][cs], self._mf.Ms[-1][cs]
+        _ = self._binshift.shift_flat(fb=0.10)
+        mj, Mj = self._binshift.rebin(bins=15)
 
-        cr = self._mf.Nr[-1] > 10 * self._mf.Nmin
-        mr, Mr = self._mf.mr[-1][cr], self._mf.Mr[-1][cr]
-
-        # Collect mean mass and total mass bins
-        mj = np.r_[ms, mr]
-        Mj = np.r_[Ms, Mr]
-
-        # store some necessary mass function info in the model
-        self.nms = ms.size
-        self.nmr = mr.size
+        self.nms = self._binshift._nms
 
         # TODO these kind of slices would prob be more useful than nms elsewhere
-        self._star_bins = slice(0, self.nms)
-        self._remnant_bins = slice(self.nms, self.nms + self.nmr)
+        self._star_bins = self._binshift.MS_mask | self._binshift.bin_mask
+        self._remnant_bins = self._binshift.WD_mask | self._binshift.NS_mask | self._binshift.BH_mask
+        self._bin_mask = self._binshift.bin_mask
+        self._single_mask = ~self._binshift.bin_mask
 
         # TODO still don't entriely understand when this is to be used
         # mj is middle of mass bins, mes are edges, widths are sizes of bins
@@ -876,7 +871,12 @@ class Model(lp.limepy):
             mj = np.concatenate((mj, tracer_mj))
             Mj = np.concatenate((Mj, 0.1 * np.ones_like(tracer_mj)))
 
-            self._tracer_bins = slice(self.nms + self.nmr, None)
+            self._tracer_bins = np.append(~(self._single_mask | self._bin_mask), False)
+            self._star_bins = np.append(self._star_bins, False)
+            self._remnant_bins = np.append(self._remnant_bins, False)
+            self._bin_mask = np.append(self._bin_mask, False)
+            self._single_mask = np.append(self._single_mask, False)
+
 
         else:
             logging.warning("No `Observations` given, no tracer masses added")
@@ -913,44 +913,41 @@ class Model(lp.limepy):
         # ------------------------------------------------------------------
 
         # TODO slight difference in mf.IFMR.mBH_min and mf.mBH_min?
-        self._mBH_min = self._mf.IFMR.mBH_min << u.Msun
-        self._BH_bins = self.mj[self._remnant_bins] > self._mBH_min
+        self._BH_bins = np.append(self._binshift.BH_mask, False)
 
-        self._mWD_max = self._mf.IFMR.predict(self._mf.IFMR.wd_m_max) << u.Msun
-        self._WD_bins = self.mj[self._remnant_bins] < self._mWD_max
+        self._WD_bins = np.append(self._binshift.WD_mask, False)
 
-        self._NS_bins = ((self._mWD_max < self.mj[self._remnant_bins])
-                         & (self.mj[self._remnant_bins] < self._mBH_min))
+        self._NS_bins = np.append(self._binshift.NS_mask, False)
 
         # ------------------------------------------------------------------
         # Get Black Holes
         # ------------------------------------------------------------------
 
-        self.BH_mj = self.mj[self._remnant_bins][self._BH_bins]
-        self.BH_Mj = self.Mj[self._remnant_bins][self._BH_bins]
-        self.BH_Nj = self.Nj[self._remnant_bins][self._BH_bins]
+        self.BH_mj = self.mj[self._BH_bins]
+        self.BH_Mj = self.Mj[self._BH_bins]
+        self.BH_Nj = self.Nj[self._BH_bins]
 
-        self.BH_rhoj = self.rhoj[self._remnant_bins][self._BH_bins]
-        self.BH_Sigmaj = self.Sigmaj[self._remnant_bins][self._BH_bins]
+        self.BH_rhoj = self.rhoj[self._BH_bins]
+        self.BH_Sigmaj = self.Sigmaj[self._BH_bins]
 
         # ------------------------------------------------------------------
         # Get White Dwarfs
         # ------------------------------------------------------------------
 
-        self.WD_mj = self.mj[self._remnant_bins][self._WD_bins]
-        self.WD_Mj = self.Mj[self._remnant_bins][self._WD_bins]
-        self.WD_Nj = self.Nj[self._remnant_bins][self._WD_bins]
+        self.WD_mj = self.mj[self._WD_bins]
+        self.WD_Mj = self.Mj[self._WD_bins]
+        self.WD_Nj = self.Nj[self._WD_bins]
 
-        self.WD_rhoj = self.rhoj[self._remnant_bins][self._WD_bins]
-        self.WD_Sigmaj = self.Sigmaj[self._remnant_bins][self._WD_bins]
+        self.WD_rhoj = self.rhoj[self._WD_bins]
+        self.WD_Sigmaj = self.Sigmaj[self._WD_bins]
 
         # ------------------------------------------------------------------
         # Get Neutron Stars
         # ------------------------------------------------------------------
 
-        self.NS_mj = self.mj[self._remnant_bins][self._NS_bins]
-        self.NS_Mj = self.Mj[self._remnant_bins][self._NS_bins]
-        self.NS_Nj = self.Nj[self._remnant_bins][self._NS_bins]
+        self.NS_mj = self.mj[self._NS_bins]
+        self.NS_Mj = self.Mj[self._NS_bins]
+        self.NS_Nj = self.Nj[self._NS_bins]
 
-        self.NS_rhoj = self.rhoj[self._remnant_bins][self._NS_bins]
-        self.NS_Sigmaj = self.Sigmaj[self._remnant_bins][self._NS_bins]
+        self.NS_rhoj = self.rhoj[self._NS_bins]
+        self.NS_Sigmaj = self.Sigmaj[self._NS_bins]
