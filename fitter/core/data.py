@@ -852,8 +852,6 @@ class Model(lp.limepy):
         self._bin_mask = self._binshift.bin_mask
         self._single_mask = ~self._binshift.bin_mask
 
-        # Rescale density bins to compensate for binaries
-        bs.gcfit.rescale_densities(self)
 
         # TODO still don't entriely understand when this is to be used
         # mj is middle of mass bins, mes are edges, widths are sizes of bins
@@ -954,3 +952,7 @@ class Model(lp.limepy):
 
         self.NS_rhoj = self.rhoj[self._NS_bins]
         self.NS_Sigmaj = self.Sigmaj[self._NS_bins]
+
+
+        # NOTE: Rescale density bins to compensate for binaries
+        bs.gcfit.rescale_densities(self)
