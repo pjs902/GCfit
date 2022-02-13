@@ -955,4 +955,5 @@ class Model(lp.limepy):
 
 
         # NOTE: Rescale density bins to compensate for binaries
+        # TODO: this seems to be broken when testing under gcfit, update test cases to make sure this is actually working, then test under gcfit again
         bs.gcfit.rescale_densities(self)
