@@ -940,7 +940,11 @@ def likelihood_mass_func(model, mf, field, *, hyperparams=False):
     # Generate the mass splines before the loops, to save repetition
     # ----------------------------------------------------------------------
 
-    densityj = [util.QuantitySpline(model.r, model.Sigmaj[j])
+
+
+    # NOTE: Here we switched to the *rescaled* densities for the binaries
+
+    densityj = [util.QuantitySpline(model.r, model.rescaled_Sigmaj[j])
                 for j in range(model.nms)]
 
     # ------------------------------------------------------------------
