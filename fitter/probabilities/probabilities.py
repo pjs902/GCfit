@@ -943,9 +943,11 @@ def likelihood_mass_func(model, mf, field, *, hyperparams=False):
 
 
     # NOTE: Here we switched to the *rescaled* densities for the binaries
-
-    densityj = [util.QuantitySpline(model.r, model.rescaled_Sigmaj[j])
-                for j in range(model.nms)]
+    if model.binary_fraction == 0.0:
+        densityj = [util.QuantitySpline(model.r, model.Sigmaj[j])]
+    else:
+        densityj = [util.QuantitySpline(model.r, model.rescaled_Sigmaj[j])
+                    for j in range(model.nms)]
 
     # ------------------------------------------------------------------
     # Determine the observation data which corresponds to this field
