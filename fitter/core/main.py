@@ -111,7 +111,7 @@ class NestedSamplingOutput(Output):
 
     def _store_bounds(self, bounds, key='bound', group=None, *, file=None):
         '''store_dataset alternative for the 'bounds' key which is returned in
-        ther form of bound objects, which can't be stored directly
+        the form of bound objects, which can't be stored directly
 
         bounds is a list of bound objects
         '''
@@ -289,7 +289,7 @@ class NestedSamplingOutput(Output):
 
 def MCMC_fit(cluster, Niters, Nwalkers, Ncpu=2, *,
              mpi=False, initials=None, param_priors=None, moves=None,
-             fixed_params=None, excluded_likelihoods=None, hyperparams=False,
+             fixed_params=None, excluded_likelihoods=None, binary_fraction=0.0, hyperparams=False,
              cont_run=False, savedir=_here, backup=False,
              verbose=False, progress=False):
     '''Main MCMC fitting pipeline
@@ -351,6 +351,11 @@ def MCMC_fit(cluster, Niters, Nwalkers, Ncpu=2, *,
         function. Each likelihood can be specified using either the name of
         the function (as given by __name__) or the name of the relevant dataset.
 
+    binary_fraction : float, optional
+        Fraction of main sequence stars in binary systems.
+        Note: This requires `binaryshift` to be installed and will increase
+        the runtime of the models.
+
     hyperparams : bool, optional
         Whether to include bayesian hyperparameters (see Hobson et al., 2002)
         in all likelihood functions.
@@ -400,7 +405,7 @@ def MCMC_fit(cluster, Niters, Nwalkers, Ncpu=2, *,
         raise ValueError(f"Cannot access '{savedir}': No such directory")
 
     # ----------------------------------------------------------------------
-    # Load obeservational data, determine which likelihoods are valid/desired
+    # Load observational data, determine which likelihoods are valid/desired
     # ----------------------------------------------------------------------
 
     logging.info(f"Loading {cluster} data")
@@ -431,7 +436,7 @@ def MCMC_fit(cluster, Niters, Nwalkers, Ncpu=2, *,
         # fill manually supplied dict with defaults (change to unions in 3.9)
         initials = {**observations.initials, **initials}
 
-    logging.debug(f"Inital initals: {initials}")
+    logging.debug(f"Initial initials: {initials}")
 
     if extraneous_params := (set(fixed_params) - initials.keys()):
         raise ValueError(f"Invalid fixed parameters: {extraneous_params}")
@@ -445,8 +450,8 @@ def MCMC_fit(cluster, Niters, Nwalkers, Ncpu=2, *,
     variable_initials = {key: initials[key] for key in
                          sorted(variable_params, key=list(initials).index)}
 
-    logging.debug(f"Fixed initals: {fixed_initials}")
-    logging.debug(f"Variable initals: {variable_initials}")
+    logging.debug(f"Fixed initials: {fixed_initials}")
+    logging.debug(f"Variable initials: {variable_initials}")
 
     init_pos = np.fromiter(variable_initials.values(), np.float64)
     init_pos = 1e-4 * np.random.randn(Nwalkers, init_pos.size) + init_pos
@@ -506,6 +511,8 @@ def MCMC_fit(cluster, Niters, Nwalkers, Ncpu=2, *,
         backend.store_metadata('fixed_params', fixed_initials)
         backend.store_metadata('excluded_likelihoods', excluded_likelihoods)
 
+        backend.store_metadata('binary_fraction', binary_fraction)
+
         # MCMC moves
         backend.store_metadata('moves', [mv.__class__.__name__ for mv in moves])
 
@@ -528,7 +535,7 @@ def MCMC_fit(cluster, Niters, Nwalkers, Ncpu=2, *,
             nwalkers=Nwalkers,
             ndim=init_pos.shape[-1],
             log_prob_fn=posterior,
-            args=(observations, fixed_initials, likelihoods, prior_likelihood),
+            args=(observations, fixed_initials, likelihoods, prior_likelihood, binary_fraction),
             kwargs=sampler_kwargs,
             pool=pool,
             moves=moves,
@@ -608,8 +615,8 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
                initial_kwargs=None, batch_kwargs=None,
                pfrac=1.0, maxfrac=0.8, eff_samples=5000,
                Ncpu=2, mpi=False, initials=None, param_priors=None,
-               fixed_params=None, excluded_likelihoods=None, hyperparams=False,
-               savedir=_here, verbose=False):
+               fixed_params=None, excluded_likelihoods=None, binary_fraction=0.0,
+               hyperparams=False, savedir=_here, verbose=False):
     '''Main nested sampling fitting pipeline
 
     Execute the full nested sampling cluster fitting algorithm.
@@ -697,6 +704,11 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
         function. Each likelihood can be specified using either the name of
         the function (as given by __name__) or the name of the relevant dataset.
 
+    binary_fraction : float, optional
+        Fraction of main sequence stars in binary systems.
+        Note: This requires `binaryshift` to be installed and will increase
+        the runtime of the models.
+
     hyperparams : bool, optional
         Whether to include bayesian hyperparameters (see Hobson et al., 2002)
         in all likelihood functions.
@@ -740,7 +752,7 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
         raise ValueError(f"Cannot access '{savedir}': No such directory")
 
     # ----------------------------------------------------------------------
-    # Load obeservational data, determine which likelihoods are valid/desired
+    # Load observational data, determine which likelihoods are valid/desired
     # ----------------------------------------------------------------------
 
     logging.info(f"Loading {cluster} data")
@@ -768,7 +780,7 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
         # fill manually supplied dict with defaults (change to unions in 3.9)
         initials = {**observations.initials, **initials}
 
-    logging.debug(f"Inital initals: {initials}")
+    logging.debug(f"Initial initials: {initials}")
 
     if extraneous_params := (set(fixed_params) - initials.keys()):
         raise ValueError(f"Invalid fixed parameters: {extraneous_params}")
@@ -782,8 +794,8 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
     variable_initials = {key: initials[key] for key in
                          sorted(variable_params, key=list(initials).index)}
 
-    logging.debug(f"Fixed initals: {fixed_initials}")
-    logging.debug(f"Variable initals: {variable_initials}")
+    logging.debug(f"Fixed initials: {fixed_initials}")
+    logging.debug(f"Variable initials: {variable_initials}")
 
     # ----------------------------------------------------------------------
     # Setup param_priors transforms
@@ -839,6 +851,8 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
         backend.store_metadata('sample_type', sample_type)
 
         backend.store_metadata('hyperparams', hyperparams)
+    
+        backend.store_metadata('binary_fraction', binary_fraction)
 
         backend.store_metadata('fixed_params', fixed_initials)
         backend.store_metadata('excluded_likelihoods', excluded_likelihoods)
@@ -873,7 +887,7 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
             ndim=ndim,
             loglikelihood=posterior,  # cause we need the defaults/checks it has
             prior_transform=prior_transform,
-            logl_args=(observations, fixed_initials, likelihoods, 'ignore'),
+            logl_args=(observations, fixed_initials, likelihoods, 'ignore', binary_fraction),
             logl_kwargs=logl_kwargs,
             pool=pool,
             bound=bound_type,
@@ -914,7 +928,7 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
             wt = plateau_weight_function(sampler.results, args=weight_kw)
 
             tn = datetime.timedelta(seconds=time.time() - t0)
-            logging.info(f"Sampling new batch bebtween logl bounds {wt} ({tn})")
+            logging.info(f"Sampling new batch between logl bounds {wt} ({tn})")
 
             for results in sampler.sample_batch(logl_bounds=wt, **batch_kwargs):
                 backend.update_current_batch(results)

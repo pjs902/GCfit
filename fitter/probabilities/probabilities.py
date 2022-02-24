@@ -1008,14 +1008,14 @@ def likelihood_mass_func(model, mf, field, *, hyperparams=False):
 # --------------------------------------------------------------------------
 
 
-def log_likelihood(theta, observations, L_components, hyperparams):
+def log_likelihood(theta, observations, L_components, binary_fraction, hyperparams):
     '''
     Main likelihood function, generates the model(theta) passes it to the
     individual likelihood functions and collects their results.
     '''
 
     try:
-        model = Model(theta, observations)
+        model = Model(theta, observations, binary_fraction)
     except ValueError:
         logging.debug(f"Model did not converge with {theta=}")
         return -np.inf, -np.inf * np.ones(len(L_components))
@@ -1032,7 +1032,7 @@ def log_likelihood(theta, observations, L_components, hyperparams):
 
 
 def posterior(theta, observations, fixed_initials=None,
-              L_components=None, prior_likelihood=None, *,
+              L_components=None, prior_likelihood=None, binary_fraction=0.0, *,
               hyperparams=False, return_indiv=True):
     '''
     Combines the likelihood with the prior
@@ -1042,6 +1042,7 @@ def posterior(theta, observations, fixed_initials=None,
     fixed_initials : dict of any theta values to fix
     L_components : output from determine_components
     prior_likelihood : Priors()
+    binary_fraction : binary fraction for binaryshift
     hyperparams : use hyperparam_likelihood or gaussian_likelihood
     '''
 
@@ -1085,7 +1086,7 @@ def posterior(theta, observations, fixed_initials=None,
         log_Pθ = 0
 
     log_L, individuals = log_likelihood(theta, observations,
-                                        L_components, hyperparams)
+                                        L_components, binary_fraction, hyperparams)
 
     probability = log_L + log_Pθ
 
