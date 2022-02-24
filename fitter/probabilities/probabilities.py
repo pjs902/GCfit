@@ -944,7 +944,8 @@ def likelihood_mass_func(model, mf, field, *, hyperparams=False):
 
     # NOTE: Here we switched to the *rescaled* densities for the binaries
     if model.binary_fraction == 0.0:
-        densityj = [util.QuantitySpline(model.r, model.Sigmaj[j])]
+        densityj = [util.QuantitySpline(model.r, model.Sigmaj[j])
+                    for j in range(model.nms)]
     else:
         densityj = [util.QuantitySpline(model.r, model.rescaled_Sigmaj[j])
                     for j in range(model.nms)]
