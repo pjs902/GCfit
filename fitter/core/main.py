@@ -851,7 +851,7 @@ def nested_fit(cluster, *, bound_type='multi', sample_type='auto',
         backend.store_metadata('sample_type', sample_type)
 
         backend.store_metadata('hyperparams', hyperparams)
-    
+
         backend.store_metadata('binary_fraction', binary_fraction)
 
         backend.store_metadata('fixed_params', fixed_initials)

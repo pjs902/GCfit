@@ -805,7 +805,7 @@ class Model(lp.limepy):
 
         self.d <<= u.kpc
 
-    def __init__(self, theta, observations=None, *, binary_fraction=0.0, verbose=False):
+    def __init__(self, theta, observations=None, binary_fraction=0.0, *, verbose=False):
 
         self.observations = observations
 
