@@ -36,7 +36,7 @@ DEFAULT_INITIALS = {
 # --------------------------------------------------------------------------
 # Cluster Observational Data
 # --------------------------------------------------------------------------
-# TODO maybe define a new excepton for when a req'd thing is not in an obs
+# TODO maybe define a new exception for when a req'd thing is not in an obs
 # TODO add proposal ids to mass function data, bibcodes don't really match
 
 
@@ -232,12 +232,12 @@ class Dataset:
 
         model_r : astropy.Quantity
             Quantity representing the desired radial profile to interpolate on.
-            Only used for assymetric errors. Must have equivalent units to
+            Only used for asymmetric errors. Must have equivalent units to
             the dataset `r`.
 
         model_val : astropy.Quantity
             Quantity representing the desired values to interpolate on.
-            Only used for assymetric errors. Must have equivalent units to
+            Only used for asymmetric errors. Must have equivalent units to
             the given `varname`.
         '''
 
@@ -296,7 +296,7 @@ class Observations:
     relevant likelihoods.
 
     The relevant cluster data files will be found using the
-    `fitter.util.get_cluster_path` function, and can likewise be retricted to
+    `fitter.util.get_cluster_path` function, and can likewise be restricted to
     "core" or "local" files. The data file used *must* be considered valid
     (i.e. pass all tests within `fitter.utils.data.ClusterFile.test`).
 
@@ -773,7 +773,7 @@ class Model(lp.limepy):
 
         # TODO this needs to be much more general
         #   Right now it is only applied to those params we use in likelihoods?
-        #   Also the actualy units used are being set manually
+        #   Also the actually units used are being set manually
 
         if not self.scale:
             return
@@ -845,6 +845,7 @@ class Model(lp.limepy):
                 raise ImportError("binaryshift is required for models with binaries")
 
 
+        # Initialize the mass function
         self._mf = self._init_mf()
 
 
@@ -869,20 +870,11 @@ class Model(lp.limepy):
             self._star_bins = slice(0, self.nms)
             self._remnant_bins = slice(self.nms, self.nms + self.nmr)
 
-
-
-
-
-
-
-
-
-
         # With Binaries
         else:
             self._binshift = bs.gcfit.from_gcfit(self)
 
-            _ = self._binshift.shift_flat(fb=0.10)
+            _ = self._binshift.shift_flat(fb=self.binary_fraction)
             mj, Mj = self._binshift.rebin(bins=15)
 
             self.nms = self._binshift._nms
@@ -894,15 +886,11 @@ class Model(lp.limepy):
             self._single_mask = ~self._binshift.bin_mask
 
 
-
-
-
-
-        # TODO still don't entriely understand when this is to be used
+        # TODO still don't entirely understand when this is to be used
         # mj is middle of mass bins, mes are edges, widths are sizes of bins
         # self.mbin_widths = np.diff(self._mf.mes[-1]) ??
         # Whats the differences with `mes` and `me`?
-        # TODO is this supposed to habe units? I think so
+        # TODO is this supposed to have units? I think so
         self.mes_widths = np.diff(self._mf.mes[-1])
 
         # append tracer mass bins (must be appended to end to not affect nms)
