@@ -60,7 +60,7 @@ if __name__ == '__main__':
                                help='location of saved sampling runs')
     shared_parser.add_argument('-i', '--initials',
                                help='alternative JSON file '
-                                    'with different intials')
+                                    'with different initials')
     shared_parser.add_argument('-p', '--priors', dest='param_priors',
                                help='alternative JSON file '
                                     'with different priors')
@@ -73,6 +73,11 @@ if __name__ == '__main__':
                                dest='excluded_likelihoods',
                                help='Likelihood components to '
                                     'exclude from posteriors')
+
+    shared_parser.add_argument('-fb', '--binary-fraction', default=0.0, type=float,
+                               dest='binary_fraction',
+                               help='Fraction of main sequence stars to place in '
+                               'binary systems, requires binaryshift to be installed')
 
     shared_parser.add_argument('--hyperparams', dest='hyperparams',
                                action='store_true',
