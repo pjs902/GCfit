@@ -545,7 +545,12 @@ def likelihood_number_density(model, ndensity, *,
     yerr = np.sqrt(obs_err**2 + (model.s2 * obs_err.unit**2))
 
     model_r = model.r.to(obs_r.unit)
-    model_Σ = model.Sigmaj[mass_bin] / model.mj[mass_bin]
+
+    # NOTE: Here we switched to the *rescaled* densities for the binaries
+    if model.binary_fraction == 0.0:
+        model_Σ = model.Sigmaj[mass_bin] / model.mj[mass_bin]
+    else:
+        model_Σ = model.rescaled_Sigmaj[mass_bin] / model.mj[mass_bin]
 
     # Interpolated the model data at the measurement locations
     interpolated = np.interp(obs_r, model_r, model_Σ).to(obs_Σ.unit)
