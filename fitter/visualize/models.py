@@ -34,7 +34,7 @@ class _ClusterVisualizer:
 
             else:
                 # Figure provided, no ax provided. Try to grab it from the fig
-                # if that doens't work, create it
+                # if that doesn't work, create it
                 cur_axes = fig.axes
 
                 if len(cur_axes) > 1:
@@ -723,7 +723,7 @@ class _ClusterVisualizer:
     @_support_units
     def plot_number_density(self, fig=None, ax=None,
                             show_obs=True, residuals=False, *,
-                            x_unit='pc'):
+                            x_unit='pc', rescaled=False):
 
         def quad_nuisance(err):
             return np.sqrt(err**2 + (self.s2 << err.unit**2))
@@ -744,7 +744,12 @@ class _ClusterVisualizer:
             strict = False
             kwargs = {}
 
-        self._plot_profile(ax, pattern, var, self.numdens,
+        if rescaled:
+            numdens = self.numdens_rescaled
+        else:
+            numdens = self.numdens
+
+        self._plot_profile(ax, pattern, var, numdens,
                            strict=strict, residuals=residuals,
                            x_unit=x_unit, **kwargs)
 
@@ -1005,14 +1010,20 @@ class _ClusterVisualizer:
     @_support_units
     def plot_mass_func(self, fig=None, show_obs=True, show_fields=False, *,
                        colours=None, PI_legend=False, logscaled=False,
-                       field_kw=None):
+                       field_kw=None, rescaled=False):
 
         # ------------------------------------------------------------------
         # Setup axes, splitting into two columns if necessary and adding the
         # extra ax for the field plot if desired
         # ------------------------------------------------------------------
 
-        N_rbins = sum([len(d) for d in self.mass_func.values()])
+
+        if rescaled:
+            mass_func = self.mass_func_rescaled
+        else:
+            mass_func = self.mass_func
+
+        N_rbins = sum([len(d) for d in mass_func.values()])
         shape = ((int(np.ceil(N_rbins / 2)), int(np.floor(N_rbins / 2))), 2)
 
         # If adding the fields, include an extra column on the left for it
@@ -1047,8 +1058,8 @@ class _ClusterVisualizer:
         # Iterate over each PI, gathering data to plot
         # ------------------------------------------------------------------
 
-        for PI in sorted(self.mass_func,
-                         key=lambda k: self.mass_func[k][0]['r1']):
+        for PI in sorted(mass_func,
+                         key=lambda k: mass_func[k][0]['r1']):
 
             bins = self.mass_func[PI]
 
@@ -1254,7 +1265,7 @@ class _ClusterVisualizer:
 
     @_support_units
     def plot_density(self, fig=None, ax=None, kind='all', *,
-                     x_unit='pc'):
+                     x_unit='pc', binaries=False):
 
         if kind == 'all':
             kind = {'MS', 'tot', 'BH', 'WD', 'NS'}
@@ -1265,7 +1276,7 @@ class _ClusterVisualizer:
 
         # Total density
         if 'tot' in kind:
-            kw = {"label": "Total", "color": "tab:cyan"}
+            kw = {"label": "Total", "color": "tab:green", "lw": 2}
             self._plot_profile(ax, None, None, self.rho_tot,
                                x_unit=x_unit, **kw)
 
@@ -1277,30 +1288,36 @@ class _ClusterVisualizer:
 
         # Main sequence density
         if 'MS' in kind:
-            kw = {"label": "Main-sequence stars", "color": "tab:orange"}
+            kw = {"label": "Main-sequence stars", "color": "tab:orange", "lw": 2}
             self._plot_profile(ax, None, None, self.rho_MS,
                                x_unit=x_unit, **kw)
 
         if 'WD' in kind:
-            kw = {"label": "White Dwarfs", "color": "tab:green"}
+            kw = {"label": "White Dwarfs", "color": "cornflowerblue", "lw": 2}
             self._plot_profile(ax, None, None, self.rho_WD,
                                x_unit=x_unit, **kw)
 
         if 'NS' in kind:
-            kw = {"label": "Neutron Stars", "color": "tab:red"}
+            kw = {"label": "Neutron Stars", "color": "tab:grey", "lw": 2}
             self._plot_profile(ax, None, None, self.rho_NS,
                                x_unit=x_unit, **kw)
 
         # Black hole density
         if 'BH' in kind:
-            kw = {"label": "Black Holes", "color": "tab:gray"}
+            kw = {"label": "Black Holes", "color": "tab:purple", "lw": 2}
             self._plot_profile(ax, None, None, self.rho_BH,
+                               x_unit=x_unit, **kw)
+
+        # Binary density
+        if binaries:
+            kw = {"label": "Binaries", "color": "firebrick", "lw": 2}
+            self._plot_profile(ax, None, None, self.rho_Bin,
                                x_unit=x_unit, **kw)
 
         ax.set_yscale("log")
         ax.set_xscale("log")
 
-        ax.set_ylabel(rf'Surface Density $[M_\odot / pc^3]$')
+        ax.set_ylabel(rf'Density $[M_\odot / pc^3]$')
         # ax.set_xlabel('arcsec')
 
         # ax.legend()
@@ -1311,7 +1328,7 @@ class _ClusterVisualizer:
 
     @_support_units
     def plot_surface_density(self, fig=None, ax=None, kind='all', *,
-                             x_unit='pc'):
+                             x_unit='pc', binaries=False):
 
         if kind == 'all':
             kind = {'MS', 'tot', 'BH', 'WD', 'NS'}
@@ -1322,7 +1339,7 @@ class _ClusterVisualizer:
 
         # Total density
         if 'tot' in kind:
-            kw = {"label": "Total", "color": "tab:cyan"}
+            kw = {"label": "Total", "color": "tab:green", "lw": 2}
             self._plot_profile(ax, None, None, self.Sigma_tot,
                                x_unit=x_unit, **kw)
 
@@ -1334,24 +1351,30 @@ class _ClusterVisualizer:
 
         # Main sequence density
         if 'MS' in kind:
-            kw = {"label": "Main-sequence stars", "color": "tab:orange"}
+            kw = {"label": "Main-sequence stars", "color": "tab:orange", "lw": 2}
             self._plot_profile(ax, None, None, self.Sigma_MS,
                                x_unit=x_unit, **kw)
 
         if 'WD' in kind:
-            kw = {"label": "White Dwarfs", "color": "tab:green"}
+            kw = {"label": "White Dwarfs", "color": "cornflowerblue", "lw": 2}
             self._plot_profile(ax, None, None, self.Sigma_WD,
                                x_unit=x_unit, **kw)
 
         if 'NS' in kind:
-            kw = {"label": "Neutron Stars", "color": "tab:red"}
+            kw = {"label": "Neutron Stars", "color": "tab:grey", "lw": 2}
             self._plot_profile(ax, None, None, self.Sigma_NS,
                                x_unit=x_unit, **kw)
 
         # Black hole density
         if 'BH' in kind:
-            kw = {"label": "Black Holes", "color": "tab:gray"}
+            kw = {"label": "Black Holes", "color": "tab:purple", "lw": 2}
             self._plot_profile(ax, None, None, self.Sigma_BH,
+                               x_unit=x_unit, **kw)
+
+        # Binary density
+        if binaries:
+            kw = {"label": "Binaries", "color": "firebrick", "lw": 2}
+            self._plot_profile(ax, None, None, self.Sigma_Bin,
                                x_unit=x_unit, **kw)
 
         ax.set_yscale("log")
@@ -1368,7 +1391,7 @@ class _ClusterVisualizer:
 
     @_support_units
     def plot_cumulative_mass(self, fig=None, ax=None, kind='all', *,
-                             x_unit='pc'):
+                             x_unit='pc', binaries=False):
 
         if kind == 'all':
             kind = {'MS', 'tot', 'BH', 'WD', 'NS'}
@@ -1379,30 +1402,36 @@ class _ClusterVisualizer:
 
         # Total density
         if 'tot' in kind:
-            kw = {"label": "Total", "color": "tab:cyan"}
+            kw = {"label": "Total", "color": "tab:green", "lw": 2}
             self._plot_profile(ax, None, None, self.cum_M_tot,
                                x_unit=x_unit, **kw)
 
         # Main sequence density
         if 'MS' in kind:
-            kw = {"label": "Main-sequence stars", "color": "tab:orange"}
+            kw = {"label": "Main-sequence stars", "color": "tab:orange", "lw": 2}
             self._plot_profile(ax, None, None, self.cum_M_MS,
                                x_unit=x_unit, **kw)
 
         if 'WD' in kind:
-            kw = {"label": "White Dwarfs", "color": "tab:green"}
+            kw = {"label": "White Dwarfs", "color": "cornflowerblue", "lw": 2}
             self._plot_profile(ax, None, None, self.cum_M_WD,
                                x_unit=x_unit, **kw)
 
         if 'NS' in kind:
-            kw = {"label": "Neutron Stars", "color": "tab:red"}
+            kw = {"label": "Neutron Stars", "color": "tab:grey", "lw": 2}
             self._plot_profile(ax, None, None, self.cum_M_NS,
                                x_unit=x_unit, **kw)
 
         # Black hole density
         if 'BH' in kind:
-            kw = {"label": "Black Holes", "color": "tab:gray"}
+            kw = {"label": "Black Holes", "color": "tab:purple", "lw": 2}
             self._plot_profile(ax, None, None, self.cum_M_BH,
+                               x_unit=x_unit, **kw)
+
+        # Binary density
+        if binaries:
+            kw = {"label": "Binaries", "color": "firebrick", "lw": 2}
+            self._plot_profile(ax, None, None, self.cum_M_Bin,
                                x_unit=x_unit, **kw)
 
         ax.set_yscale("log")
@@ -1429,9 +1458,9 @@ class _ClusterVisualizer:
         ax.set_xscale("log")
 
         self._plot_profile(ax, None, None, self.frac_M_MS,
-                           x_unit=x_unit, label="Main-sequence stars")
+                           x_unit=x_unit, label="Main-sequence stars", lw=2)
         self._plot_profile(ax, None, None, self.frac_M_rem,
-                           x_unit=x_unit, label="Remnants")
+                           x_unit=x_unit, label="Remnants", lw=2)
 
         ax.set_ylabel(r"Mass fraction $M_{MS}/M_{tot}$, $M_{remn.}/M_{tot}$")
 
@@ -1452,7 +1481,7 @@ class ModelVisualizer(_ClusterVisualizer):
     '''
 
     @classmethod
-    def from_chain(cls, chain, observations, method='median'):
+    def from_chain(cls, chain, observations, method='median', binary_fraction=0.0):
         '''
         create a Visualizer instance based on a chain, y taking the median
         of the chain parameters
@@ -1466,7 +1495,7 @@ class ModelVisualizer(_ClusterVisualizer):
 
         theta = reduc_methods[method](chain, axis=0)
 
-        return cls(Model(theta, observations), observations)
+        return cls(Model(theta, observations, binary_fraction=binary_fraction), observations)
 
     @classmethod
     def from_theta(cls, theta, observations):
@@ -1512,7 +1541,7 @@ class ModelVisualizer(_ClusterVisualizer):
         self._init_mass_frac(model, observations)
         self._init_cum_mass(model, observations)
 
-    # TODO alot of these init functions could be more homogenous
+    # TODO a lot of these init functions could be more homogenous
     @_ClusterVisualizer._support_units
     def _init_numdens(self, model, observations):
         # TODO make this more robust and cleaner
@@ -1703,13 +1732,14 @@ class CIModelVisualizer(_ClusterVisualizer):
         return fig
 
     @classmethod
-    def from_chain(cls, chain, observations, N=100, *, verbose=True, pool=None):
+    def from_chain(cls, chain, observations, N=100, *, binary_fraction=0.0, verbose=True, pool=None):
         import functools
 
         viz = cls()
 
         viz.N = N
         viz.obs = observations
+        viz.binary_fraction = binary_fraction
 
         # ------------------------------------------------------------------
         # Get info about the chain and set of models
@@ -1735,7 +1765,7 @@ class CIModelVisualizer(_ClusterVisualizer):
         # very large rt. I'm not really sure yet how that might affect the CIs
         # or plots
 
-        huge_model = Model(chain[np.argmax(chain[:, 4])], viz.obs)
+        huge_model = Model(chain[np.argmax(chain[:, 4])], viz.obs, binary_fraction=binary_fraction)
 
         viz.rt = huge_model.rt
         viz.r = np.r_[0, np.geomspace(1e-5, viz.rt.value, num=99)] << u.pc
@@ -1776,6 +1806,7 @@ class CIModelVisualizer(_ClusterVisualizer):
         rho_tot = np.empty((1, N, viz.r.size)) << rho_unit
         rho_MS, rho_BH = rho_tot.copy(), rho_tot.copy()
         rho_WD, rho_NS = rho_tot.copy(), rho_tot.copy()
+        rho_Bin = rho_tot.copy()
 
         # surface density
 
@@ -1784,6 +1815,7 @@ class CIModelVisualizer(_ClusterVisualizer):
         Sigma_tot = np.empty((1, N, viz.r.size)) << Sigma_unit
         Sigma_MS, Sigma_BH = Sigma_tot.copy(), Sigma_tot.copy()
         Sigma_WD, Sigma_NS = Sigma_tot.copy(), Sigma_tot.copy()
+        Sigma_Bin = Sigma_tot.copy()
 
         # Cumulative mass
 
@@ -1792,6 +1824,7 @@ class CIModelVisualizer(_ClusterVisualizer):
         cum_M_tot = np.empty((1, N, viz.r.size)) << mass_unit
         cum_M_MS, cum_M_BH = cum_M_tot.copy(), cum_M_tot.copy()
         cum_M_WD, cum_M_NS = cum_M_tot.copy(), cum_M_tot.copy()
+        cum_M_Bin = cum_M_tot.copy()
 
         # Mass Fraction
 
@@ -1801,10 +1834,15 @@ class CIModelVisualizer(_ClusterVisualizer):
         # number density
 
         numdens = np.empty((1, N, viz.r.size)) << u.arcmin**-2
+        if viz.binary_fraction > 0:
+            numdens_rescaled = np.empty((1, N, viz.r.size)) << u.arcmin**-2
+
 
         # mass function
 
         massfunc = viz._prep_massfunc(viz.obs)
+        if viz.binary_fraction > 0:
+            massfunc_rescaled = viz._prep_massfunc(viz.obs)
 
         # massfunc = np.empty((N, N_rbins, huge_model.nms))
 
@@ -1812,11 +1850,18 @@ class CIModelVisualizer(_ClusterVisualizer):
             for rslice in rbins:
                 rslice['dNdm'] = np.empty((N, huge_model.nms))
 
-        # BH mass
+        if viz.binary_fraction > 0:
+            for rbins in massfunc_rescaled.values():
+                for rslice in rbins:
+                    rslice['dNdm'] = np.empty((N, huge_model.nms))
 
+        # BH mass
         BH_mass = np.empty(N) << u.Msun
         BH_num = np.empty(N) << u.dimensionless_unscaled
 
+        # Binary Mass
+        Bin_mass = np.empty(N) << u.Msun
+        Bin_num = np.empty(N) << u.dimensionless_unscaled
         # ------------------------------------------------------------------
         # Setup iteration and pooling
         # ------------------------------------------------------------------
@@ -1829,7 +1874,7 @@ class CIModelVisualizer(_ClusterVisualizer):
         #     chain_loader = chain
 
         # TODO assuming that chain always converges, might err if not the case
-        get_model = functools.partial(Model, observations=viz.obs)
+        get_model = functools.partial(Model, observations=viz.obs, binary_fraction=binary_fraction)
 
         try:
             _map = map if pool is None else pool.imap_unordered
@@ -1864,21 +1909,23 @@ class CIModelVisualizer(_ClusterVisualizer):
             # Mass Densities
 
             rho_MS[slc], rho_tot[slc], rho_BH[slc], \
-                rho_WD[slc], rho_NS[slc] = viz._init_dens(model)
+                rho_WD[slc], rho_NS[slc], rho_Bin[slc] = viz._init_dens(model)
 
             # Surface Densities
 
             Sigma_MS[slc], Sigma_tot[slc], Sigma_BH[slc], \
-                Sigma_WD[slc], Sigma_NS[slc] = viz._init_surfdens(model)
+                Sigma_WD[slc], Sigma_NS[slc], Sigma_Bin[slc] = viz._init_surfdens(model)
 
             # Cumulative Mass distribution
 
             cum_M_MS[slc], cum_M_tot[slc], cum_M_BH[slc], \
-                cum_M_WD[slc], cum_M_NS[slc] = viz._init_cum_mass(model)
+                cum_M_WD[slc], cum_M_NS[slc], cum_M_Bin[slc] = viz._init_cum_mass(model)
 
             # Number Densities
 
             numdens[slc] = viz._init_numdens(model, equivs=equivs)
+            if viz.binary_fraction > 0:
+                numdens_rescaled[slc] = viz._init_numdens_rescaled(model, equivs=equivs)
 
             # Mass Functions
             for rbins in massfunc.values():
@@ -1886,6 +1933,13 @@ class CIModelVisualizer(_ClusterVisualizer):
 
                     mf = rslice['dNdm']
                     mf[model_ind, ...] = viz._init_dNdm(model, rslice, equivs)
+
+            if viz.binary_fraction > 0:
+                for rbins in massfunc_rescaled.values():
+                    for rslice in rbins:
+
+                        mf_rescaled = rslice['dNdm']
+                        mf_rescaled[model_ind, ...] = viz._init_dNdm_rescaled(model, rslice, equivs)
 
             # Mass Fractions
 
@@ -1896,11 +1950,16 @@ class CIModelVisualizer(_ClusterVisualizer):
             BH_mass[model_ind] = np.sum(model.BH_Mj)
             BH_num[model_ind] = np.sum(model.BH_Nj)
 
+            # Binary Mass
+            if viz.binary_fraction > 0:
+                Bin_mass[model_ind] = np.sum(model.Bin_Mj)
+                Bin_num[model_ind] = np.sum(model.Bin_Nj)
+
         # ------------------------------------------------------------------
         # compute and store the percentiles and medians
         # ------------------------------------------------------------------
 
-        # TODO get sigmas dynamically ased on an arg
+        # TODO get sigmas dynamically based on an arg
         q = [97.72, 84.13, 50., 15.87, 2.28]
 
         axes = (1, 0, 2)  # `np.percentile` messes up the dimensions
@@ -1916,22 +1975,33 @@ class CIModelVisualizer(_ClusterVisualizer):
         viz.rho_BH = np.transpose(np.percentile(rho_BH, q, axis=1), axes)
         viz.rho_WD = np.transpose(np.percentile(rho_WD, q, axis=1), axes)
         viz.rho_NS = np.transpose(np.percentile(rho_NS, q, axis=1), axes)
+        if viz.binary_fraction > 0:
+            viz.rho_Bin = np.transpose(np.percentile(rho_Bin, q, axis=1), axes)
 
         viz.Sigma_MS = np.transpose(np.percentile(Sigma_MS, q, axis=1), axes)
         viz.Sigma_tot = np.transpose(np.percentile(Sigma_tot, q, axis=1), axes)
         viz.Sigma_BH = np.transpose(np.percentile(Sigma_BH, q, axis=1), axes)
         viz.Sigma_WD = np.transpose(np.percentile(Sigma_WD, q, axis=1), axes)
         viz.Sigma_NS = np.transpose(np.percentile(Sigma_NS, q, axis=1), axes)
+        if viz.binary_fraction > 0:
+            viz.Sigma_Bin = np.transpose(np.percentile(Sigma_Bin, q, axis=1), axes)
 
         viz.cum_M_MS = np.transpose(np.percentile(cum_M_MS, q, axis=1), axes)
         viz.cum_M_tot = np.transpose(np.percentile(cum_M_tot, q, axis=1), axes)
         viz.cum_M_BH = np.transpose(np.percentile(cum_M_BH, q, axis=1), axes)
         viz.cum_M_WD = np.transpose(np.percentile(cum_M_WD, q, axis=1), axes)
         viz.cum_M_NS = np.transpose(np.percentile(cum_M_NS, q, axis=1), axes)
+        if viz.binary_fraction > 0:
+            viz.cum_M_Bin = np.transpose(np.percentile(cum_M_Bin, q, axis=1), axes)
 
         viz.numdens = np.transpose(np.percentile(numdens, q, axis=1), axes)
+        if viz.binary_fraction > 0:
+            viz.numdens_rescaled = np.transpose(np.percentile(numdens_rescaled, q, axis=1), axes)
 
         viz.mass_func = massfunc
+
+        if viz.binary_fraction > 0:
+            viz.mass_func_rescaled = massfunc_rescaled
 
         for rbins in viz.mass_func.values():
             for rslice in rbins:
@@ -1943,6 +2013,10 @@ class CIModelVisualizer(_ClusterVisualizer):
 
         viz.BH_mass = BH_mass
         viz.BH_num = BH_num
+
+        if viz.binary_fraction > 0:
+            viz.Bin_mass = Bin_mass
+            viz.Bin_num = Bin_num
 
         return viz
 
@@ -1993,7 +2067,14 @@ class CIModelVisualizer(_ClusterVisualizer):
         rho_NS_interp = util.QuantitySpline(model.r, rho_NS)
         rho_NS = rho_NS_interp(self.r)
 
-        return rho_MS, rho_tot, rho_BH, rho_WD, rho_NS
+        if model.binary_fraction == 0.0:
+            rho_Bin = 0
+        else:
+            rho_Bin = np.sum(model.Bin_rhoj, axis=0)
+            rho_Bin_interp = util.QuantitySpline(model.r, rho_Bin)
+            rho_Bin = rho_Bin_interp(self.r)
+
+        return rho_MS, rho_tot, rho_BH, rho_WD, rho_NS, rho_Bin
 
     def _init_surfdens(self, model):
 
@@ -2017,7 +2098,14 @@ class CIModelVisualizer(_ClusterVisualizer):
         Sigma_NS_interp = util.QuantitySpline(model.r, Sigma_NS)
         Sigma_NS = Sigma_NS_interp(self.r)
 
-        return Sigma_MS, Sigma_tot, Sigma_BH, Sigma_WD, Sigma_NS
+        if model.binary_fraction == 0.0:
+            Sigma_Bin = 0
+        else:
+            Sigma_Bin = np.sum(model.Bin_Sigmaj, axis=0)
+            Sigma_Bin_interp = util.QuantitySpline(model.r, Sigma_Bin)
+            Sigma_Bin = Sigma_Bin_interp(self.r)
+
+        return Sigma_MS, Sigma_tot, Sigma_BH, Sigma_WD, Sigma_NS, Sigma_Bin
 
     def _init_cum_mass(self, model):
         # TODO it seems like the integrated mass is a bit less than total Mj?
@@ -2044,7 +2132,15 @@ class CIModelVisualizer(_ClusterVisualizer):
         cum_M_NS_interp = util.QuantitySpline(model.r, cum_M_NS)
         cum_M_NS = [cum_M_NS_interp.integral(self.r[0], ri) for ri in self.r]
 
-        return cum_M_MS, cum_M_tot, cum_M_BH, cum_M_WD, cum_M_NS
+        if model.binary_fraction == 0.0:
+            cum_M_Bin = 0
+        else:
+
+            cum_M_Bin = _2πr * np.sum(model.Bin_Sigmaj, axis=0)
+            cum_M_Bin_interp = util.QuantitySpline(model.r, cum_M_Bin)
+            cum_M_Bin = [cum_M_Bin_interp.integral(self.r[0], ri) for ri in self.r]
+
+        return cum_M_MS, cum_M_tot, cum_M_BH, cum_M_WD, cum_M_NS, cum_M_Bin
 
     def _init_mass_frac(self, model):
 
@@ -2074,6 +2170,25 @@ class CIModelVisualizer(_ClusterVisualizer):
     def _init_numdens(self, model, equivs=None):
 
         model_nd = model.Sigmaj[model.nms - 1] / model.mj[model.nms - 1]
+
+        try:
+
+            obs_nd = self.obs['number_density']
+            obs_r = obs_nd['r'].to(model.r.unit, equivs)
+
+            nd_interp = util.QuantitySpline(model.r, model_nd)
+
+            K = (np.nansum(obs_nd['Σ'] * nd_interp(obs_r) / obs_nd['Σ']**2)
+                 / np.nansum(nd_interp(obs_r)**2 / obs_nd['Σ']**2))
+
+        except KeyError:
+            K = 1
+
+        return K * nd_interp(self.r)
+
+    def _init_numdens_rescaled(self, model, equivs=None):
+
+        model_nd = model.rescaled_Sigmaj[model.nms - 1] / model.mj[model.nms - 1]
 
         try:
 
@@ -2144,6 +2259,23 @@ class CIModelVisualizer(_ClusterVisualizer):
 
         return dNdm
 
+    def _init_dNdm_rescaled(self, model, rslice, equivs=None):
+        '''returns dndm for this model in this slice'''
+
+        densityj = [util.QuantitySpline(model.r, model.rescaled_Sigmaj[j])
+                    for j in range(model.nms)]
+
+        with u.set_enabled_equivalencies(equivs):
+            sample_radii = rslice['field'].MC_sample(300).to(u.pc)
+
+            dNdm = np.empty(model.nms)
+
+            for j in range(model.nms):
+                Nj = rslice['field'].MC_integrate(densityj[j], sample_radii)
+                widthj = (model.mj[j] * model.mes_widths[j])
+                dNdm[j] = (Nj / widthj).value
+
+        return dNdm
     # ----------------------------------------------------------------------
     # Save and load confidence intervals to a file
     # ----------------------------------------------------------------------

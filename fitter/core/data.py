@@ -884,6 +884,9 @@ class Model(lp.limepy):
             self._remnant_bins = self._binshift.WD_mask | self._binshift.NS_mask | self._binshift.BH_mask
             self._bin_mask = self._binshift.bin_mask
             self._single_mask = ~self._binshift.bin_mask
+            self.nms = np.sum(self._binshift.MS_mask)
+            self.nmr = np.sum(self._remnant_bins)
+            self.nbin = np.sum(self._bin_mask)
 
 
         # TODO still don't entirely understand when this is to be used
@@ -911,8 +914,7 @@ class Model(lp.limepy):
 
             else:
 
-
-                self._tracer_bins = np.append(~(self._single_mask | self._bin_mask), True)
+                self._tracer_bins = slice(self.nms + self.nmr + self.nbin, None)
                 self._star_bins = np.append(self._star_bins, False)
                 self._remnant_bins = np.append(self._remnant_bins, False)
                 self._bin_mask = np.append(self._bin_mask, False)
@@ -956,8 +958,6 @@ class Model(lp.limepy):
         # TODO slight difference in mf.IFMR.mBH_min and mf.mBH_min?
 
 
-
-
         if self.binary_fraction == 0.0:
             self._mBH_min = self._mf.IFMR.mBH_min << u.Msun
             self._BH_bins = self.mj[self._remnant_bins] > self._mBH_min
@@ -968,19 +968,11 @@ class Model(lp.limepy):
             self._NS_bins = ((self._mWD_max < self.mj[self._remnant_bins])
                              & (self.mj[self._remnant_bins] < self._mBH_min))
 
-        else:
-            self._BH_bins = np.append(self._binshift.BH_mask, False)
-
-            self._WD_bins = np.append(self._binshift.WD_mask, False)
-
-            self._NS_bins = np.append(self._binshift.NS_mask, False)
-
-        # ------------------------------------------------------------------
-        # Get Black Holes
-        # ------------------------------------------------------------------
 
 
-        if self.binary_fraction == 0.0:
+            # ------------------------------------------------------------------
+            # Get Black Holes
+            # ------------------------------------------------------------------
             self.BH_mj = self.mj[self._remnant_bins][self._BH_bins]
             self.BH_Mj = self.Mj[self._remnant_bins][self._BH_bins]
             self.BH_Nj = self.Nj[self._remnant_bins][self._BH_bins]
@@ -989,20 +981,9 @@ class Model(lp.limepy):
             self.BH_rhoj = self.rhoj[self._remnant_bins][self._BH_bins]
             self.BH_Sigmaj = self.Sigmaj[self._remnant_bins][self._BH_bins]
 
-        else:
-
-            self.BH_mj = self.mj[self._BH_bins]
-            self.BH_Mj = self.Mj[self._BH_bins]
-            self.BH_Nj = self.Nj[self._BH_bins]
-
-            self.BH_rhoj = self.rhoj[self._BH_bins]
-            self.BH_Sigmaj = self.Sigmaj[self._BH_bins]
-
-        # ------------------------------------------------------------------
-        # Get White Dwarfs
-        # ------------------------------------------------------------------
-
-        if self.binary_fraction == 0.0:
+            # ------------------------------------------------------------------
+            # Get White Dwarfs
+            # ------------------------------------------------------------------
             self.WD_mj = self.mj[self._remnant_bins][self._WD_bins]
             self.WD_Mj = self.Mj[self._remnant_bins][self._WD_bins]
             self.WD_Nj = self.Nj[self._remnant_bins][self._WD_bins]
@@ -1010,34 +991,62 @@ class Model(lp.limepy):
             self.WD_rhoj = self.rhoj[self._remnant_bins][self._WD_bins]
             self.WD_Sigmaj = self.Sigmaj[self._remnant_bins][self._WD_bins]
 
-        else:
-            self.WD_mj = self.mj[self._WD_bins]
-            self.WD_Mj = self.Mj[self._WD_bins]
-            self.WD_Nj = self.Nj[self._WD_bins]
-
-            self.WD_rhoj = self.rhoj[self._WD_bins]
-            self.WD_Sigmaj = self.Sigmaj[self._WD_bins]
-
-        # ------------------------------------------------------------------
-        # Get Neutron Stars
-        # ------------------------------------------------------------------
-
-        if self.binary_fraction == 0.0:
+            # ------------------------------------------------------------------
+            # Get Neutron Stars
+            # ------------------------------------------------------------------
             self.NS_mj = self.mj[self._remnant_bins][self._NS_bins]
             self.NS_Mj = self.Mj[self._remnant_bins][self._NS_bins]
             self.NS_Nj = self.Nj[self._remnant_bins][self._NS_bins]
 
             self.NS_rhoj = self.rhoj[self._remnant_bins][self._NS_bins]
             self.NS_Sigmaj = self.Sigmaj[self._remnant_bins][self._NS_bins]
-
         else:
+            self._BH_bins = np.append(self._binshift.BH_mask, False)
+
+            self._WD_bins = np.append(self._binshift.WD_mask, False)
+
+            self._NS_bins = np.append(self._binshift.NS_mask, False)
+
+         	# ------------------------------------------------------------------
+         	# Get Black Holes
+         	# ------------------------------------------------------------------
+            self.BH_mj = self.mj[self._BH_bins]
+            self.BH_Mj = self.Mj[self._BH_bins]
+            self.BH_Nj = self.Nj[self._BH_bins]
+
+            self.BH_rhoj = self.rhoj[self._BH_bins]
+            self.BH_Sigmaj = self.Sigmaj[self._BH_bins]
+
+         	# ------------------------------------------------------------------
+         	# Get White Dwarfs
+         	# ------------------------------------------------------------------
+            self.WD_mj = self.mj[self._WD_bins]
+            self.WD_Mj = self.Mj[self._WD_bins]
+            self.WD_Nj = self.Nj[self._WD_bins]
+
+            self.WD_rhoj = self.rhoj[self._WD_bins]
+            self.WD_Sigmaj = self.Sigmaj[self._WD_bins]
+            
+            # ------------------------------------------------------------------
+            # Get Neutron Stars
+            # ------------------------------------------------------------------
             self.NS_mj = self.mj[self._NS_bins]
             self.NS_Mj = self.Mj[self._NS_bins]
             self.NS_Nj = self.Nj[self._NS_bins]
 
             self.NS_rhoj = self.rhoj[self._NS_bins]
             self.NS_Sigmaj = self.Sigmaj[self._NS_bins]
-
-
+            
             # NOTE: Rescale density bins to compensate for binaries
             bs.gcfit.rescale_densities(self)
+
+            # ------------------------------------------------------------------
+            # Get Binaries
+            # ------------------------------------------------------------------
+            self.Bin_mj = self.mj[self._bin_mask]
+            self.Bin_Mj = self.Mj[self._bin_mask]
+            self.Bin_Nj = self.Nj[self._bin_mask]
+
+            self.Bin_rhoj = self.rhoj[self._bin_mask]
+            self.Bin_Sigmaj = self.Sigmaj[self._bin_mask]
+            

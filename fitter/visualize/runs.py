@@ -35,7 +35,7 @@ class _RunVisualizer:
 
             else:
                 # Figure provided, no ax provided. Try to grab it from the fig
-                # if that doens't work, create it
+                # if that doesn't work, create it
                 cur_axes = fig.axes
 
                 if len(cur_axes) > 1:
@@ -216,7 +216,7 @@ class MCMCVisualizer(_RunVisualizer):
     # ----------------------------------------------------------------------
 
     def _reduce(self, array, *, only_iterations=False):
-        '''apply the necesary iterations and walkers slicing to given `array`
+        '''apply the necessary iterations and walkers slicing to given `array`
         '''
 
         # Apply iterations cut
@@ -371,13 +371,13 @@ class MCMCVisualizer(_RunVisualizer):
 
         return ModelVisualizer.from_chain(chain, self.obs, method)
 
-    def get_CImodel(self, N=100, Nprocesses=1):
+    def get_CImodel(self, N=100, Nprocesses=1, binary_fraction=0.0):
         import multiprocessing
 
         labels, chain = self._get_chains()
 
         with multiprocessing.Pool(processes=Nprocesses) as pool:
-            return CIModelVisualizer.from_chain(chain, self.obs, N, pool=pool)
+            return CIModelVisualizer.from_chain(chain, self.obs, N, pool=pool, binary_fraction=binary_fraction)
 
     # ----------------------------------------------------------------------
     # Plots
@@ -517,7 +517,7 @@ class MCMCVisualizer(_RunVisualizer):
     # Summaries
     # ----------------------------------------------------------------------
 
-    # TODO this is missing alot of formatting needs
+    # TODO this is missing a lot of formatting needs
     def plot_summary(self, fig=None, *, box=True, violin=True):
 
         if not (box or violin):
@@ -531,7 +531,7 @@ class MCMCVisualizer(_RunVisualizer):
 
         # gridspec to hspace, wspace = 0
         # subplot spacing to use more of grid
-        # Maybe set ylims ased on prior bounds? if they're not too large
+        # Maybe set ylims based on prior bounds? if they're not too large
 
         for i in range(chain.shape[-1]):
 
@@ -1235,7 +1235,7 @@ class NestedVisualizer(_RunVisualizer):
                 continue
 
             # --------------------------------------------------------------
-            # Divide the ax to accomodate the posterior plot on the right
+            # Divide the ax to accommodate the posterior plot on the right
             # --------------------------------------------------------------
 
             divider = make_axes_locatable(ax)
