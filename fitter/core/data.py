@@ -915,10 +915,10 @@ class Model(lp.limepy):
             else:
 
                 self._tracer_bins = slice(self.nms + self.nmr + self.nbin, None)
-                self._star_bins = np.append(self._star_bins, False)
-                self._remnant_bins = np.append(self._remnant_bins, False)
-                self._bin_mask = np.append(self._bin_mask, False)
-                self._single_mask = np.append(self._single_mask, False)
+                self._star_bins = np.append(self._star_bins, [False] * len(tracer_mj))
+                self._remnant_bins = np.append(self._remnant_bins, [False] * len(tracer_mj))
+                self._bin_mask = np.append(self._bin_mask, [False] * len(tracer_mj))
+                self._single_mask = np.append(self._single_mask, [False] * len(tracer_mj))
 
 
         else:
@@ -1001,11 +1001,11 @@ class Model(lp.limepy):
             self.NS_rhoj = self.rhoj[self._remnant_bins][self._NS_bins]
             self.NS_Sigmaj = self.Sigmaj[self._remnant_bins][self._NS_bins]
         else:
-            self._BH_bins = np.append(self._binshift.BH_mask, False)
+            self._BH_bins = np.append(self._binshift.BH_mask, [False] * len(tracer_mj))
 
-            self._WD_bins = np.append(self._binshift.WD_mask, False)
+            self._WD_bins = np.append(self._binshift.WD_mask, [False] * len(tracer_mj))
 
-            self._NS_bins = np.append(self._binshift.NS_mask, False)
+            self._NS_bins = np.append(self._binshift.NS_mask, [False] * len(tracer_mj))
 
          	# ------------------------------------------------------------------
          	# Get Black Holes
