@@ -1162,9 +1162,10 @@ class _ClusterVisualizer:
         # Put labels on subfigs
         # ------------------------------------------------------------------
 
-        for sf in fig.subfigs[show_fields:]:
+        # Turn this off for now, was making spacing super weird, just doing it manually
+        # for sf in fig.subfigs[show_fields:]:
 
-            sf.supxlabel(r'Mass [$M_\odot$]')
+        #     sf.supxlabel(r'Mass [$M_\odot$]')
 
         fig.subfigs[show_fields].supylabel('dN/dm')
 
